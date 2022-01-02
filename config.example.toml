@@ -1,0 +1,9 @@
+# Basic
+color_log = true
+periodic_tracking_frequency = 300
+
+# Discord
+discord_bot_token = ""
+discord_bot_command_prefix = ">"
+discord_bot_channel_id = 
+website_offline_notification = false
