@@ -121,4 +121,4 @@ def create_logger(logFolder = ""):
 # ---------------* initialization *---------------
 colorama.init()
 add_logging_level("OK", logging.INFO+1)
-log = create_logger("\log")
+log = create_logger("\logs")

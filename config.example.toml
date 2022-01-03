@@ -1,6 +1,6 @@
 # Basic
 color_log = true
-periodic_tracking_frequency = 300
+periodic_tracking_frequency = 600
 
 # Discord
 discord_bot_token = ""

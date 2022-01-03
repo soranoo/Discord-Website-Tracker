@@ -58,9 +58,6 @@ def save_csv(df, fileName="db.csv"):
     log.ok("Successfully saved urls data.")
 
 def store_url(df, category, url):
-    if "/" not in url[-1]:
-        url += "/"
-
     if category in df.columns:
         df = df.append({category:url}, ignore_index=True)
         log.ok(f"Successfully stored <{url}> to category of <{category}>")
@@ -148,13 +145,13 @@ def create_report(df, targetCategory=None):
     report = {}
     table = [["category", "url", "connection", "latency"]]
     for category in df.columns:
-        report.update({category:[]})
         if not targetCategory or (category == targetCategory):
+            report.update({category:[]})
             for url in fetch_urls(df, category):
                 connection = check_web_connection(url)
                 latency = round(utility.avg(get_web_latency(url))) if connection else False
                 report[category].append({"url":url, "connection":connection, "latency":latency})
-                table.append([category, url, connection, latency])
+                table.append([category, url, connection, f"{latency}ms"])
     TableIt.printTable(table, useFieldNames=True)
     return report
 
@@ -201,7 +198,7 @@ async def periodic_tracking():
         log.info(f"Next Periodic Tracking will after {periodic_tracking_frequency}s.")
 
         # update bot status, credit: https://stackoverflow.com/a/59126629
-        await discord_bot.change_presence(activity=discord.Game(name="Stand-By..."))
+        await discord_bot.change_presence(activity=discord.Game(name="IDLE"))
 
         await asyncio.sleep(periodic_tracking_frequency) # repeat after every xx seconds
 
@@ -209,7 +206,7 @@ async def periodic_tracking():
 
 
 # ---------------* Discord Bot *---------------
-discord_bot = commands.Bot(command_prefix=discord_bot_command_prefix)
+discord_bot = commands.Bot(command_prefix=discord_bot_command_prefix, help_command=None)
 DiscordComponents(discord_bot)
 
 def create_embeds_msg(color, title, description):
@@ -246,219 +243,294 @@ async def on_message(msg):
 
 @discord_bot.command(aliases=["Ping"])
 async def ping(ctx):
-        await ctx.send(f"> {round(discord_bot.latency*1000)} ms")
+    await ctx.send(f"> {round(discord_bot.latency*1000)} ms")
 
-@discord_bot.command(aliases=["Track", "tk"])
+
+@discord_bot.group(aliases=["Track", "tk"], invoke_without_command=True)
 async def track(ctx, *args):
     if len(args) == 0:
-        await ctx.send("> :warning:   Command Error.")
+        await ctx.send("> :warning:   Command Error...")
         await ctx.send("> :information_source:   **It should be...** ```>track {url}```")
         return
 
-    subCmds = ["add", "remove", "catremove","catrename", "list", "report"]
-    if args[0].lower() in subCmds:
-        args = list(args) # convert tuple to list
-        subcmd = args[0]
-        if subcmd == "add": # command structure: >track add(args0) category(args1) url(args2-)
-            if len(args) >= 2:
-                if validators.url(args[1]):
-                    newArgs = []
-                    for id, value in enumerate(args):
-                        newArgs.append(value)
-                        if id == 0:
-                            newArgs.append("main")
-                    args = newArgs
+    # instant track
+    await ctx.send(f"> Please wait...")
+    for url in args:
+        if validators.url(url):
+            if check_web_connection(url):
+                webLatency = get_web_latency(url)
+                await ctx.send(embed=create_embeds_msg(1752220, "", f"{create_dc_tracking_signal(url, check_web_connection(url), utility.round_to_n(utility.avg(webLatency),3))}"))
             else:
-                if len(args) > 1:
-                    if not validators.url(args[1]):
-                        await ctx.send(f"> :warning:   Non-valid URL <**{args[1]}**> (Malformed?)")
-                        await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
-                        return
-                else:
-                    await ctx.send("> :warning:   Command Error.")
-                    await ctx.send("> :information_source:   **It should be...** ```>track add {category(optional)} {url}```")
-                    return
+                await ctx.send(embed=create_embeds_msg(1752220, "", f"{create_dc_tracking_signal(url, False, False)}"))
+        else:
+            await ctx.send(f"> :warning:   Non-valid URL <**{url}**> (Malformed?)")
+            await ctx.send(f"> :information_source:   **Valid URL example - ```https://url.com```**")
 
-            targetCategory = args[1]
-            urls = args
-            del urls[0] # remove "add"
-            del urls[0] # remove category
-            for url in urls:
-                if not validators.url(url):
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to the tracking list.\nreason: non-valid URL <{url}> (Malformed?)"))
-                    await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
-                    continue
+@track.command(name="add", aliases=["Add"])
+async def track_subcmd_add(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
 
-                categories = load_csv().columns
-                if targetCategory in categories:
-                    if store_url(load_csv(),targetCategory, url):
-                        await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully stored <{url}> to category of <**{targetCategory}**>"))
-                    else:
-                        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to the tracking list."))
-                else:
-                    await ctx.send(f"> Category of <{targetCategory}> not exist. Would you like to create it?", components=[
-                        [Button(label="YES", style="3", emoji="✅", custom_id="btn_yes"),
-                        Button(label="NO", style="4", emoji="❌", custom_id="btn_no")]
-                    ])
-                    interaction = await discord_bot.wait_for("button_click")
-                    if interaction.custom_id == "btn_yes":
-                        if store_url(load_csv(),targetCategory, url):
-                            await interaction.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully created category of <{targetCategory}>."), ephemeral=False)
-                            await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully stored <{url}> to category of <**{targetCategory}**>"))
-                        else:
-                            await interaction.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to create category of <{targetCategory}>."), ephemeral=False)
-                            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to category of <**{targetCategory}**>."))
-                    elif interaction.custom_id == "btn_no":
-                        await interaction.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <{targetCategory}>."), ephemeral=False)
-        elif subcmd == "remove":
-            if len(args) >= 2:
-                if validators.url(args[1]):
-                    newArgs = []
-                    for id, value in enumerate(args):
-                        newArgs.append(value)
-                        if id == 0:
-                            newArgs.append("main")
-                    args = newArgs
+    if len(args) >= 1:
+        if validators.url(args[0]):
+            newArgs = []
+            for index, value in enumerate(args):
+                if index == 0:
+                    newArgs.append("main")
+                newArgs.append(value)
+            args = newArgs
+    else:
+        if len(args) > 0:
+            if not validators.url(args[0]):
+                await ctx.send(f"> :warning:   Non-valid URL <**{args[0]}**> (Malformed?)")
+                await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
+                return
+        else:
+            await ctx.send("> :warning:   Command Error...")
+            await ctx.send("> :information_source:   **It should be...** ```>track add {category(optional)} {url}```")
+            return
+    
+    targetCategory = args[0]
+    urls = args
+    del urls[0] # remove category
+    for url in urls:
+        if "/" not in url[-1]:
+            url += "/"
+        if not validators.url(url):
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to the tracking list.\nreason: non-valid URL <{url}> (Malformed?)"))
+            await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
+            continue
+
+        categories = load_csv().columns
+        if targetCategory in categories:
+            if store_url(load_csv(),targetCategory, url):
+                await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully stored <{url}> to category of <**{targetCategory}**>"))
             else:
-                if len(args) > 1:
-                    if not validators.url(args[1]):
-                        await ctx.send(f"> :warning:   Non-valid URL <**{args[1]}**> (Malformed?)")
-                        await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
-                        return
+                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to the tracking list."))
+        else:
+            await ctx.send(f"> Category of <**{targetCategory}**> not exist. Would you like to create it?", components=[
+                [Button(label="YES", style="3", emoji="✅", custom_id="btn_yes"),
+                Button(label="NO", style="4", emoji="❌", custom_id="btn_no")]
+            ])
+            interaction = await discord_bot.wait_for("button_click")
+            if interaction.custom_id == "btn_yes":
+                if store_url(load_csv(),targetCategory, url):
+                    await interaction.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully created category of <{targetCategory}>."), ephemeral=False)
+                    await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully stored <{url}> to category of <**{targetCategory}**>"))
                 else:
-                    await ctx.send("> :warning:   Command Error.")
-                    await ctx.send("> :information_source:   **It should be...** ```>track remove {category(optional)} {url}```")
-                    return
+                    await interaction.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to create category of <{targetCategory}>."), ephemeral=False)
+                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to add <{url}> to category of <**{targetCategory}**>."))
+            elif interaction.custom_id == "btn_no":
+                await interaction.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <{targetCategory}>."), ephemeral=False)
 
-            targetCategory = args[1]
-            urls = args
-            del urls[0] # remove "remove"
-            del urls[0] # remove category
-            for url in urls:
-                if not validators.url(url):
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>.\nreason: non-valid URL <{url}> (Malformed?)"))
-                    await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
-                    continue
-                
-                df = load_csv()
-                categories = df.columns
-                if targetCategory in categories:
-                    if url in df[targetCategory].values:
-                        if remove_url(df, targetCategory, url):
-                            await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully removed <{url}> from category of <**{targetCategory}**>"))
-                        else:
-                            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>."))
-                    else:
-                        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  <{url}> dose exist in category of <**{targetCategory}**>."))
+@track.command(name="remove", aliases=["Remove"])
+async def track_subcmd_remove(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
+
+    if len(args) >= 1:
+        if validators.url(args[0]):
+            newArgs = []
+            for index, value in enumerate(args):
+                if index == 0:
+                    newArgs.append("main")
+                newArgs.append(value)
+            args = newArgs
+    else:
+        if len(args) > 0:
+            if not validators.url(args[0]):
+                await ctx.send(f"> :warning:   Non-valid URL <**{args[0]}**> (Malformed?)")
+                await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
+                return
+        else:
+            await ctx.send("> :warning:   Command Error...")
+            await ctx.send("> :information_source:   **It should be...** ```>track remove {category(optional)} {url}```")
+            return
+
+    targetCategory = args[0]
+    urls = args
+    del urls[0] # remove category
+    for url in urls:
+        if "/" not in url[-1]:
+            url += "/"
+        if not validators.url(url):
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>.\nreason: non-valid URL <{url}> (Malformed?)"))
+            await ctx.send(f"> :information_source:   **Valid URL example ~** ```https://url.com```")
+            continue
+        
+        df = load_csv()
+        categories = df.columns
+        if targetCategory in categories:
+            if url in df[targetCategory].values:
+                if remove_url(df, targetCategory, url):
+                    await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully removed <{url}> from category of <**{targetCategory}**>"))
                 else:
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>\nreason: category of <**{targetCategory}**> not exist."))
-        elif subcmd == "catremove":
-            if len(args) == 1:
-                await ctx.send("> :warning:   Command Error.")
-                await ctx.send("> :information_source:   **It should be...** ```>track catremove {category}```")
-                return
-            targetCategories = args
-            del targetCategories[0] # remove "catremove"
-            for category in targetCategories:
-                if category == "main":
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> cannot be removed."))
-                    continue
-                df = load_csv()
-                if category in df.columns:
-                    try:
-                        df = df.drop(columns=[category])
-                        log.ok(f"Successfully removed category of <{category}>")
-                        await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully removed category of <**{category}**>"))
-                        save_csv(df)
-                    except Exception as err:
-                        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to remove category of <**{category}**>."))
-                        await ctx.send(f"ERROR code-```{err}```")
-                        log.error(err)
-                        log.error(f"Category of <{category}> cannot be removed.")
-                else:
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
-        elif subcmd == "catrename":
-            if len(args) <= 2:
-                await ctx.send("> :warning:   Command Error.")
-                await ctx.send("> :information_source:   **It should be...** ```>track catrename {old-category-name} {new-category-name}```")
-                return
-            oldName = args[1]
-            newName = args[2]
-            if oldName == "main":
-                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  <**{oldName}**> cannot be renamed."))
-                return
-            df = load_csv()
+                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>."))
+            else:
+                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  <{url}> dose exist in category of <**{targetCategory}**>."))
+        else:
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Remove <{url}> failed from category of <**{targetCategory}**>\nreason: category of <**{targetCategory}**> not exist."))
+
+# category remove
+@track.command(name="categoryremove", aliases=["Categoryremove", "catremove", "Catremove"])
+async def track_subcmd_categoryremove(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
+    
+    if len(args) == 0:
+        await ctx.send("> :warning:   Command Error...")
+        await ctx.send("> :information_source:   **It should be...** ```>track catremove {category}```")
+        return
+    targetCategories = args
+    for category in targetCategories:
+        if category == "main":
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> cannot be removed."))
+            continue
+        df = load_csv()
+        if category in df.columns:
             try:
-                df = df.rename({oldName:newName}, axis='columns')
+                df = df.drop(columns=[category])
+                log.ok(f"Successfully removed category of <{category}>")
+                await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully removed category of <**{category}**>"))
                 save_csv(df)
-                await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully renamed category name from <**{oldName}**> to <**{newName}**>."))
-                log.ok(f"Successfully renamed category name from <{oldName}> to <{newName}>.")
             except Exception as err:
+                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to remove category of <**{category}**>."))
+                await ctx.send(f"ERROR code-```{err}```")
                 log.error(err)
-                log.error(f"Failed to rename category name from <{oldName}> to <{newName}>.")
-                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to rename category name from <**{oldName}**> to <**{newName}**>."))
-        elif subcmd == "list":
-            df = load_csv()
-            categories = df.columns
-            if len(args) == 1:
-                targetCategories = categories
-            else:
-                targetCategories = args
-                del targetCategories[0] # remove "list"
-            msg = "TRACKING LIST-\n\n"
-            for category in targetCategories:
-                if category not in categories:
-                    await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
-                    continue
-                urls = fetch_urls(df, category)
-                msg += f"**{category}** ({len(urls)})\n"
-                if len(urls) == 0:
-                    msg += "{empty}\n"
-                    continue
-                for index, url in enumerate(urls):
-                    msg += f"{index} {url}\n"
-            await ctx.send(f"```{msg}```")
-        elif subcmd == "report":
-            await ctx.send(f"> Please wait...")
-            df = load_csv()
-            categories = df.columns
-            reportRawData = {}
-            if len(args) == 1:
-                reportRawData = create_report(df)
-            else:
-                targetCategories = args
-                del targetCategories[0] # remove "report"
-                for category in targetCategories:
-                    if category not in categories:
-                        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
-                        continue
-                    reportRawData.update(create_report(df, category))
-            if len(reportRawData) == 0:
-                return
-            report = "\n"
-            for category, data in reportRawData.items():
-                report += f"\n**{category}**\n"
-                if len(data) == 0:
-                    report += "{empty}"
-                for trackingData in data:
-                    trackingSignal = create_dc_tracking_signal(trackingData["url"], trackingData["connection"], trackingData["latency"])
-                    report += f"{trackingSignal}\n"
-            await ctx.send(embed=create_embeds_msg(1752220, "TRACKING REPORT", f"{report}"))
-    else: # instant track
-        await ctx.send(f"> Please wait...")
-        for url in args:
-            if validators.url(url):
-                if check_web_connection(url):
-                    webLatency = get_web_latency(url)
-                    await ctx.send(embed=create_embeds_msg(1752220, "", f"{create_dc_tracking_signal(url, check_web_connection(url), utility.round_to_n(utility.avg(webLatency),3))}"))
-                else:
-                    await ctx.send(embed=create_embeds_msg(1752220, "", f"{create_dc_tracking_signal(url, False, False)}"))
-            else:
-                await ctx.send(f"> :warning:   Non-valid URL <**{url}**> (Malformed?)")
-                await ctx.send(f"> :information_source:   **Valid URL example - ```https://url.com```**")
+                log.error(f"Category of <{category}> cannot be removed.")
+        else:
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
 
-            
+@track.command(name="categoryrename", aliases=["Categoryrename", "catrename", "Catrename"])
+async def track_subcmd_categoryrename(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
+    
+    if len(args) == 0:
+        await ctx.send("> :warning:   Command Error...")
+        await ctx.send("> :information_source:   **It should be...** ```>track catrename {old-category-name} {new-category-name}```")
+        return
+    oldName = args[0]
+    newName = args[1]
+    if oldName == "main":
+        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  <**{oldName}**> cannot be renamed."))
+        return
+    df = load_csv()
+    try:
+        df = df.rename({oldName:newName}, axis='columns')
+        save_csv(df)
+        await ctx.send(embed=create_embeds_msg(5763719, "", f"✅  Successfully renamed category name from <**{oldName}**> to <**{newName}**>."))
+        log.ok(f"Successfully renamed category name from <{oldName}> to <{newName}>.")
+    except Exception as err:
+        log.error(err)
+        log.error(f"Failed to rename category name from <{oldName}> to <{newName}>.")
+        await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Failed to rename category name from <**{oldName}**> to <**{newName}**>."))
 
+@track.command(name="list", aliases=["List"])
+async def track_subcmd_list(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
+    
+    df = load_csv()
+    categories = df.columns
+    if len(args) == 0:
+        targetCategories = categories
+    else:
+        targetCategories = args
+    msg = "TRACKING LIST-\n"
+    for category in targetCategories:
+        if category not in categories:
+            await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
+            continue
+        urls = fetch_urls(df, category)
+        msg += f"\n**{category}** ({len(urls)})\n"
+        if len(urls) == 0:
+            msg += "{empty}\n"
+            continue
+        for index, url in enumerate(urls):
+            msg += f"{index} {url}\n"
+    await ctx.send(f"```{msg}```")
+
+@track.command(name="report", aliases=["Report"])
+async def track_subcmd_report(ctx, *args):
+    args = ctx.message.content.split(" ")
+    del args[0] # remove primary cmd
+    del args[0] # remove subcmd
+    # args = list(args) # convert tuple to list
+    
+    await ctx.send(f"> Please wait...")
+    df = load_csv()
+    categories = df.columns
+    reportRawData = {}
+    if len(args) == 0:
+        reportRawData = create_report(df)
+    else:
+        targetCategories = args
+        for category in targetCategories:
+            if category not in categories:
+                await ctx.send(embed=create_embeds_msg(15548997, "", f":warning:  Category of <**{category}**> does not exist."))
+                continue
+            reportRawData.update(create_report(df, category))
+    if len(reportRawData) == 0:
+        return
+    report = "\n"
+    for category, data in reportRawData.items():
+        report += f"\n**{category}**\n"
+        if len(data) == 0:
+            report += "{empty}\n"
+        for trackingData in data:
+            trackingSignal = create_dc_tracking_signal(trackingData["url"], trackingData["connection"], trackingData["latency"])
+            report += f"{trackingSignal}\n"
+    await ctx.send(embed=create_embeds_msg(1752220, "TRACKING REPORT", f"{report}"))
+
+
+@discord_bot.group(aliases=["Help"], invoke_without_command=True)
+async def help(ctx):
+    helpMsg = "```\n" # first
+    helpMsg += "Command: \n"
+    helpMsg += "  Tips [>track] or in short [>tk]\n"
+    helpMsg += "  >track {url-0} {url-1(optional)} {url-2(optional)}...\n"
+    helpMsg += "   [*] Track any website by the url(s).\n\n"
+    helpMsg += "  >track add {category(optional)} {url-0} {url-1(optional)}...\n"
+    helpMsg += "   [*] Add url(s) to the tracking list.\n\n"
+    helpMsg += "  >track remove {category(optional)} {url-0} {url-1(optional)}...\n"
+    helpMsg += "   [*] Remove url(s) from the tracking list.\n\n"
+    helpMsg += "  >track catremove {category-0} {category-1(optional)}...\n"
+    helpMsg += "   [*] Remove category.\n\n"
+    helpMsg += "  >track catrename {old-category-name} {new-category-name}\n"
+    helpMsg += "   [*] Rename category.\n\n"
+    helpMsg += "  >track list {category-0(optional)} {category-1(optional)}...\n"
+    helpMsg += "   [*] List out the tracking list.\n\n"
+    helpMsg += "  >track report {category-0(optional)} {category-1(optional)}...\n"
+    helpMsg += "   [*] Create a tracking report.\n\n"
+    helpMsg += "\n[>help 2] see next page >>>"
+    helpMsg += "\n```" # last
+    await ctx.send(f"> HELP \n{helpMsg}")
+
+@help.command(name="2")
+async def track_subcmd_help2(ctx):
+    helpMsg = "```\n" # first
+    helpMsg += "Bot Configuration:\n"
+    helpMsg += "  Command Prefix = [>]\n"
+    helpMsg += f"  Periodic Tracking Frequency = {periodic_tracking_frequency}s\n"
+    helpMsg += f"  Website Offline Notification = {website_offline_notification}\n"
+    helpMsg += "  You modify in [config.toml]\n\n"
+    helpMsg += "Notice:\n"
+    helpMsg += "  Green checkmark will be marked if the command is read by the bot.\n"
+    helpMsg += "  When the bot is in [IDLE] status it means the bot is listening to the chat, if in [Periodic Tracking...] status it means the bot is running the periodic tracking and the command which enter during this period will be executed after the tracking.\n"
+    helpMsg += "\n\nTHE END of [>help]"
+    helpMsg += "\n```" # last
+    await ctx.send(f"> HELP 2 \n{helpMsg}")
 
 # ---------------* Initialization *---------------
 # discord_bot.loop.create_task(periodic_tracking()) # start periodic tracking

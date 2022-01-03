@@ -1,4 +1,4 @@
-# Discord-Website-Tracker
+# DiscordBot-Website-Tracker
 Project start in 31-12-2021
 
 ## Known Issues
