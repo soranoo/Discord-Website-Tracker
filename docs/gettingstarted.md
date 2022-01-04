@@ -22,7 +22,7 @@ To install the Python package dependencies you have to type `pip install -r requ
 You can create a Discord bot through [[Discord.py Guild]](https://discordpy.readthedocs.io/en/stable/discord.html).
 
 The following bot permissions are required.
-   <img alt="Discord Bot Permission Requirement" src="docs/imgs/discord-bot-permission-requirement.png" width="600"></img>
+   ![alt text](/docs/imgs/discord-bot-permission-requirement.png)
 
 The bot token will make use of [the next part](#setting-up-configuration).
 
@@ -40,7 +40,8 @@ You must be done the following steps before using the bot.
 5. Paste the channel ID where your world like to run to `discord_bot_channel_id`.
    * In order to find the channel ID, you have to switch on the `Developer Mode` which is located in [User Setting > Advanced]
    * Then you can find `Copy ID` when you right-click to the channel.
-     <img alt="Discord Copy Channel ID" src="docs/imgs/discord-copy-channel-id.png" width="600"></img>
+   
+      ![alt text](/docs/imgs/discord-copy-channel-id.png)
 6. Save the config file.
 
 <a name="bot-deployment"></a>
