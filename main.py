@@ -247,7 +247,7 @@ async def ping(ctx):
 async def track(ctx, *args):
     if len(args) == 0:
         await ctx.send("> :warning:   Command Error...")
-        await ctx.send("> :information_source:   **It should be...** ```>track {url}```")
+        await ctx.send("> :information_source:   **It should be...** ```>track {url-0} {url-1(optional)} {url-2(optional)}...```")
         return
 
     # instant track
@@ -286,7 +286,7 @@ async def track_subcmd_add(ctx, *args):
                 return
         else:
             await ctx.send("> :warning:   Command Error...")
-            await ctx.send("> :information_source:   **It should be...** ```>track add {category(optional)} {url}```")
+            await ctx.send("> :information_source:   **It should be...** ```>track add {category(optional)} {url-0} {url-1(optional)}...```")
             return
     
     targetCategory = args[0]
@@ -345,7 +345,7 @@ async def track_subcmd_remove(ctx, *args):
                 return
         else:
             await ctx.send("> :warning:   Command Error...")
-            await ctx.send("> :information_source:   **It should be...** ```>track remove {category(optional)} {url}```")
+            await ctx.send("> :information_source:   **It should be...** ```>track remove {category(optional)} {url-0} {url-1(optional)}...```")
             return
 
     targetCategory = args[0]
@@ -382,7 +382,7 @@ async def track_subcmd_categoryremove(ctx, *args):
     
     if len(args) == 0:
         await ctx.send("> :warning:   Command Error...")
-        await ctx.send("> :information_source:   **It should be...** ```>track catremove {category}```")
+        await ctx.send("> :information_source:   **It should be...** ```>track catremove {category-0} {category-1(optional)}...```")
         return
     targetCategories = args
     for category in targetCategories:
