@@ -1,7 +1,5 @@
-import time
 import os
 import re
-import colorama
 import toml
 import requests
 import validators
@@ -11,7 +9,7 @@ import numpy as np
 
 import discord
 from discord.ext import commands
-from discord_components import DiscordComponents, ComponentsBot, Button
+from discord_components import DiscordComponents, Button
 
 from datetime import datetime
 from tcp_latency import measure_latency
@@ -21,7 +19,7 @@ from src.logger import log, color_log
 from src import eventSystem, utility, TableIt
 
 
-# ---------------* Common *---------------
+# ---------------* Config *---------------
 config = toml.load("config.toml")
 color_log = config.get("color_log")
 discord_bot_token = config.get("discord_bot_token")
@@ -151,7 +149,7 @@ def create_report(df, targetCategory=None):
                 connection = check_web_connection(url)
                 latency = round(utility.avg(get_web_latency(url))) if connection else False
                 report[category].append({"url":url, "connection":connection, "latency":latency})
-                table.append([category, url, connection, f"{latency}ms"])
+                table.append([category, url, connection, f"{latency}{'ms'if latency is not False else ''}"])
     TableIt.printTable(table, useFieldNames=True)
     return report
 
@@ -173,7 +171,6 @@ async def periodic_tracking():
     while not discord_bot.is_closed():
         # update bot status, credit: https://stackoverflow.com/a/59126629
         await discord_bot.change_presence(activity=discord.Game(name="Periodic Tracking..."))
-
         log.info("Start Periodic Tracking...")
         df = load_csv()
         reportRawData = create_report(df)
@@ -518,7 +515,7 @@ async def help(ctx):
     await ctx.send(f"> HELP \n{helpMsg}")
 
 @help.command(name="2")
-async def track_subcmd_help2(ctx):
+async def help_subcmd_2(ctx):
     helpMsg = "```\n" # first
     helpMsg += "Bot Configuration:\n"
     helpMsg += "  Command Prefix = [>]\n"

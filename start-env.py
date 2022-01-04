@@ -8,6 +8,7 @@ path_env = r".\env\Scripts\activate"
 
 '''
 Create venv 'py -m venv env'
+Freeze 'pip freeze -l > requirements.txt '
 With /k cmd executes and then remain open
 With /c executes and close
 '''
