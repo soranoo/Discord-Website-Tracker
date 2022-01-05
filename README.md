@@ -10,6 +10,11 @@ Project start in 31-12-2021
 ## Getting Started
 To install Website Tracker, check out the [Getting Started guide](docs/gettingstarted.md).
 
+## Notice
+When the bot is in [IDLE] status
+![alt text](/docs/imgs/discord-bot-state-idle) it means the bot is listening to the chat, if in [Periodic Tracking...]![alt text](/docs/imgs/discord-bot-state-periodic-tracking) status it means the bot is running the periodic tracking and the command which enter during this period will be executed after the tracking.
+
+
 ## TODO
 * Improve Performance
 
