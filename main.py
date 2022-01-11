@@ -192,7 +192,7 @@ async def periodic_tracking():
         if lostConnectNum > 0:
             await channel.send(f"{'@here' if website_offline_notification else ''}", embed=create_embeds_msg(10181046, "", f":exclamation: **[Offline Notification]**\nThere {'are' if lostConnectNum > 1 else 'is'} {lostConnectNum} website{'s' if lostConnectNum > 1 else ''} offline. \n```{msg}```"))
         log.ok(f"Periodic Tracking finished.")
-        log.info(f"Next Periodic Tracking will after {periodic_tracking_frequency}s.")
+        log.info(f"Next Periodic Tracking will begin after {periodic_tracking_frequency}s.")
 
         # update bot status, credit: https://stackoverflow.com/a/59126629
         await discord_bot.change_presence(activity=discord.Game(name="IDLE"))
