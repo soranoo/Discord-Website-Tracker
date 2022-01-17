@@ -16,7 +16,7 @@ from tcp_latency import measure_latency
 from urllib.parse import urlparse
 
 from src.logger import log, color_log
-from src import eventSystem, utility, TableIt
+from src import utility, TableIt
 
 
 # ---------------* Config *---------------
