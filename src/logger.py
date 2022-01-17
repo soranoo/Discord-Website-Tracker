@@ -11,12 +11,13 @@ import logging
 import os
 import pathlib
 import colorama
+import toml
 
 from datetime import datetime
 from colorama import Fore, Back, Style
 from colorlog import ColoredFormatter
 
-color_log = True
+color_log = toml.load(f"{os.getcwd()}/config.toml").get("color_log")
 dir_path = os.getcwd() # logs path
 filename = "{:%d-%m-%Y}".format(datetime.now()) + ".log"
 log_colors={

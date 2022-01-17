@@ -15,13 +15,12 @@ from datetime import datetime
 from tcp_latency import measure_latency
 from urllib.parse import urlparse
 
-from src.logger import log, color_log
+from src.logger import log
 from src import utility, TableIt
 
 
 # ---------------* Config *---------------
 config = toml.load("config.toml")
-color_log = config.get("color_log")
 discord_bot_token = config.get("discord_bot_token")
 discord_bot_command_prefix = config.get("discord_bot_command_prefix")
 discord_bot_channel_id = config.get("discord_bot_channel_id")
