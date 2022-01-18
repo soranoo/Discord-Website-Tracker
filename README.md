@@ -1,5 +1,5 @@
 # DiscordBot-Website-Tracker
-Project start in 31-12-2021
+Project start on 31-12-2021
 
 ### Portal ↠ [Installation](docs/gettingstarted.md#installing-python-package) · [Usage](docs/gettingstarted.md#bot-deployment) · [Commands](docs/gettingstarted.md#bot-commands) ↞
 
