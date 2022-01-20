@@ -1,9 +1,20 @@
-# Basic
-color_log = true
+# ---------------* Basic *---------------
 periodic_tracking_frequency = 600
 
-# Discord
-discord_bot_token = ""
+# --------------* Discord *--------------
+discord_bot_token = "YOUR BOT TOKEN"
 discord_bot_command_prefix = ">"
-discord_bot_channel_id = 
+discord_bot_channel_id = YOUR CHANNEL ID
+
+# Send notification with @here when the website(s) in the tracking list is offline.
 website_offline_notification = false
+
+# ----------------* Log *----------------
+# save log as a text file
+log_save = true
+
+# console log with color
+log_color = true
+
+# include the current time zone into the log
+log_time_zone = false
