@@ -2,7 +2,7 @@
 Project start on 31-12-2021
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-### Portal ↠ [Installation](docs/gettingstarted.md#installing-python-package) · [Usage](docs/gettingstarted.md#bot-deployment) · [Commands](docs/gettingstarted.md#bot-commands) ↞
+## Portal ↠ [Installation](docs/gettingstarted.md#installing-python-package) · [Usage](docs/gettingstarted.md#bot-deployment) · [Commands](docs/gettingstarted.md#bot-commands) ↞
 
 ## Requirements
 * Python 3.6 or latest (*Developed in Python 3.8.1)
