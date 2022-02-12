@@ -18,3 +18,6 @@ log_color = true
 
 # include the current time zone into the log
 log_time_zone = false
+
+# highlight the log with the same color with log label
+log_full_color = true

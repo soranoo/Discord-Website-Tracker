@@ -8,7 +8,6 @@
 ## Usage
 - [Bot Deployment](#bot-deployment)
 - [Bot Commands](#bot-commands)
-- [EZ Tool](#ez-tool)
 
 <a name="installing-python-package"></a>
 ## 1. Installing the Python package dependencies
@@ -64,9 +63,3 @@ Tips [>track] or in short [>tk]
 6. `>track list {category-0(optional)} {category-1(optional)}...` List out the tracking list.
 7. `>track report {category-0(optional)} {category-1(optional)}...` Create a tracking report.
 8. `>help` Say for help.
-
-
-<a name="ez-tool"></a>
-## 6. EZ Tool
-
-Double click 'start-env.py' and the command prompt with the activated virtual environment will pop up.

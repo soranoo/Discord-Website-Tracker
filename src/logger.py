@@ -5,6 +5,7 @@
 # https://titangene.github.io/article/python-logging.html
 # https://www.w3schools.com/python/gloss_python_date_format_codes.asp
 # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
+# https://github.com/borntyping/python-colorlog
 # -----------------------------------------------------
 
 import logging
@@ -19,6 +20,7 @@ config = toml.load(f"{os.getcwd()}/config.toml")
 log_color = config.get("log_color")
 log_time_zone = config.get("log_time_zone")
 log_save = config.get("log_save")
+log_full_color = config.get("log_full_color")
 
 dir_path = os.getcwd() # logs path
 filename = "{:%d-%m-%Y}".format(datetime.now()) + ".log"
@@ -31,17 +33,18 @@ log_colors={
 			"CRITICAL":"purple",
 		}
 
-colorcode_reset = '\x1b[0m'
-colorcode_bold = '\x1b[1m'
-colorcode_dim = '\x1b[2m'
-colorcode_red = '\x1b[31m'
-colorcode_green = '\x1b[32m'
-colorcode_yellow = '\x1b[33m'
-colorcode_blue = '\x1b[34m'
-colorcode_magenta = '\x1b[35m'
-colorcode_cyan = '\x1b[36m'
-colorcode_white = '\x1b[37m'
-colorcode_gray = '\x1b[90m'
+class Colorcode:
+    reset = '\x1b[0m'
+    bold = '\x1b[1m'
+    dim = '\x1b[2m'
+    red = '\x1b[31m'
+    green = '\x1b[32m'
+    yellow = '\x1b[33m'
+    blue = '\x1b[34m'
+    magenta = '\x1b[35m'
+    cyan = '\x1b[36m'
+    white = '\x1b[37m'
+    gray = '\x1b[90m'
 
 # Example:
 # log.debug("A quirky message only developers care about")
@@ -102,10 +105,10 @@ def add_logging_level(levelName, levelNum, methodName=None):
 
 def create_logger(logFolder = ""):
 	# config
-    dateFormat  = "%d-%m-%Y %I:%M:%S %p%z" if log_time_zone else "%d-%m-%Y %I:%M:%S"
+    dateFormat  = "%d-%m-%Y %H:%M:%S %z" if log_time_zone else "%d-%m-%Y %H:%M:%S"
     logging.captureWarnings(True) # catch py waring message
     formatter_file = logging.Formatter("%(asctime)s   |  %(levelname)-8s | %(message)s", datefmt=dateFormat)
-    formatter_console_color = ColoredFormatter(f"{colorcode_gray}%(asctime)s{colorcode_reset}   |  %(log_color)s%(levelname)-8s%(reset)s | %(log_color)s%(message)s%(reset)s",
+    formatter_console_color = ColoredFormatter(f"{Colorcode.gray}%(asctime)s{Colorcode.reset}   |  %(log_color)s%(levelname)-8s%(reset)s | {'%(log_color)s' if log_full_color else Colorcode.white}%(message)s{Colorcode.reset}",
      datefmt=dateFormat, log_colors=log_colors)
     formatter_console = logging.Formatter("%(asctime)s   |  %(levelname)-8s | %(message)s", datefmt=dateFormat)
     logger = logging.getLogger("py.warnings") # catch py waring message
