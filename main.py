@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 from src.logger import log
 from src import utility, TableIt
 
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__))) # get current directory
 
 # ---------------* Config *---------------
 config = toml.load("config.toml")
@@ -28,7 +29,7 @@ periodic_tracking_frequency = config.get("periodic_tracking_frequency")
 website_offline_notification = config.get("website_offline_notification")
 
 # ---------------* Data Storage *---------------
-def load_csv(folderPath=os.getcwd(), fileName="db.csv"):
+def load_csv(folderPath=__location__, fileName="db.csv"):
 	if os.path.exists(folderPath+"/"+fileName):
 		log.ok(f"Loaded <{fileName}> from <{folderPath}>")
 		df = pd.read_csv(fileName)
